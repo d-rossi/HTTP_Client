@@ -3,6 +3,9 @@ import argparse
 import sys
 from urllib.parse import urlparse
 
+#NOTE for json we need backtick:	python httpc.py post -h "Content-Type:application/json" -d "{\"Assignment\": 1}" http://httpbin.org/post
+#SEE https://stackoverflow.com/questions/7172784/how-do-i-post-json-data-with-curl
+
 #######################################HELP MESSAGES##################################################
 help_get = """httpc help get
 usage: httpc get [-v] [-h key:value] URL
@@ -13,10 +16,10 @@ Get executes a HTTP GET request for a given URL.
 help_post = """httpc help post
 usage: httpc post [-v] [-h key:value] [-d inline-data] [-f file] URL
 Post executes a HTTP POST request for a given URL with inline data or from file.
-	-v	Prints the detail of the response such as protocol, status, and headers.
+	-v		Prints the detail of the response such as protocol, status, and headers.
 	-h key:value	Associates headers to HTTP Request with the format 'key:value'.
 	-d string	Associates an inline data to the body HTTP POST request.
-	-f file	Associates the content of a file to the body HTTP POST request.
+	-f file		Associates the content of a file to the body HTTP POST request.
 	Either [-d] or [-f] can be used but not both."""
 
 general_help = """httpc help
@@ -25,8 +28,8 @@ Usage:
 	httpc command [arguments]
 The commands are:
 	get	executes a HTTP GET request and prints the response.
-	post executes a HTTP POST request and prints the response.
-	help prints this screen.
+	post	executes a HTTP POST request and prints the response.
+	help	prints this screen.
 
 Use "httpc help [command]" for more information about a command."""
 #####################################################################################################
@@ -62,6 +65,39 @@ def get_request(verbose, headers, output_file, url, port, request="GET"):
 	mysock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	mysock.connect((host, port))
 	cmd = f'{request} {url} HTTP/1.0\n\n'.encode()
+	mysock.send(cmd)
+
+	response = ''
+	while True:
+		data = mysock.recv(512)
+		response += data.decode()
+		if (len(data) < 1):
+			break
+	
+	if (not verbose):
+		response = strip_http_headers(response)
+
+	if(output_file):
+		with open(output_file, "w") as file:
+			file.write(response)
+	else:
+		print(response)
+
+	mysock.close()
+
+def post_request(verbose, headers, body, file, output_file, url, port, request="POST"):
+	host = urlparse(url).netloc
+	mysock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	mysock.connect((host, port))
+
+	if file:
+		with open(file, "r") as file:
+			body = file.read()
+
+	all_headers = "\r\n".join(headers)
+	requestPost = f"POST {url} HTTP/1.0\r\nHost: {host}\r\nContent-Length: {str(len(body))}\r\n{all_headers}\r\n\r\n{body}\r\n"
+
+	cmd = requestPost.encode()
 	mysock.send(cmd)
 
 	response = ''
@@ -121,11 +157,11 @@ def main():
 	if request == "GET":
 		if args.d or args.f:
 			parser.error("get request should not be used with the options -d or -f.")
-		# get_request(args.v, args.h, args.o, url, port, request)
+		get_request(args.v, args.h, args.o, url, port, request)
 	elif request == "POST":
 		if not (args.d or args.f):
 			parser.error("post request should be used with the options -d or -f (but not both).")
-		# post_request(args.v, args.h, args.d, args.f, args.o, url, port, request)
+		post_request(args.v, args.h, args.d, args.f, args.o, url, port, request)
 
 if __name__ == "__main__":
     main()
