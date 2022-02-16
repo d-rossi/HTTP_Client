@@ -31,6 +31,57 @@ The commands are:
 Use "httpc help [command]" for more information about a command."""
 #####################################################################################################
 
+##################################HELPER METHODS#####################################################
+def strip_http_headers(http_reply):
+    p = http_reply.find('\r\n\r\n')
+    if p >= 0:
+        return http_reply[p+4:]
+    return http_reply
+
+def check_for_dupplicates(args_list):
+	args_counter = {}
+	for element in args_list:
+		if element not in args_counter:
+			args_counter[element] = 1
+		else:
+			args_counter[element] += 1
+	
+	if "-v" in args_counter and args_counter["-v"] >= 2:
+		return "Please provide only one -v"
+	elif "-d" in args_counter and args_counter["-d"] >= 2:
+		return "Please provide only one -d"
+	elif "-f" in args_counter and args_counter["-f"] >= 2:
+		return "Please provide only one -f"
+
+	return None
+
+#####################################################################################################
+
+def get_request(verbose, headers, output_file, url, port, request="GET"):
+	host = urlparse(url).netloc
+	mysock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	mysock.connect((host, port))
+	cmd = f'{request} {url} HTTP/1.0\n\n'.encode()
+	mysock.send(cmd)
+
+	response = ''
+	while True:
+		data = mysock.recv(512)
+		response += data.decode()
+		if (len(data) < 1):
+			break
+	
+	if (not verbose):
+		response = strip_http_headers(response)
+
+	if(output_file):
+		with open(output_file, "w") as file:
+			file.write(response)
+	else:
+		print(response)
+
+	mysock.close()
+
 def main():
 	commandline_args = sys.argv[1:]
 	num_commandline_args = len(commandline_args)
