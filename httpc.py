@@ -68,9 +68,30 @@ def get_redirect_path(response):
 
 def get_request(verbose, headers, output_file, url, port, request="GET"):
 	host = urlparse(url).netloc
+	request_get = f'{request} {url} HTTP/1.0\n\n'
+	full_response = do_request(verbose, host, port, request_get, output_file, request)
+	redirect_url = do_redirect(host, full_response);
+	if (redirect_url):
+		get_request(verbose, headers, output_file, redirect_url, port, request)
+
+def post_request(verbose, headers, body, file, output_file, url, port, request="POST"):
+	host = urlparse(url).netloc
+
+	if file:
+		with open(file, "r") as file:
+			body = file.read()
+
+	all_headers = "\r\n".join(headers)
+	request_post = f"POST {url} HTTP/1.0\r\nHost: {host}\r\nContent-Length: {str(len(body))}\r\n{all_headers}\r\n\r\n{body}\r\n"
+	full_response = do_request(verbose, host, port, request_post, output_file, request)
+	redirect_url = do_redirect(host, full_response);
+	if (redirect_url):
+		post_request(verbose, headers, body, file, output_file, redirect_url, port, request)
+
+def do_request(verbose, host, port, request_string, output_file, request):
 	mysock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	mysock.connect((host, port))
-	cmd = f'{request} {url} HTTP/1.0\n\n'.encode()
+	cmd = request_string.encode()
 	mysock.send(cmd)
 
 	response = ''
@@ -79,7 +100,7 @@ def get_request(verbose, headers, output_file, url, port, request="GET"):
 		response += data.decode()
 		if (len(data) < 1):
 			break
-
+	
 	full_response = response
 	if (not verbose):
 		response = strip_http_headers(full_response)
@@ -92,47 +113,19 @@ def get_request(verbose, headers, output_file, url, port, request="GET"):
 
 	mysock.close()
 
-	status_code = int(full_response.split()[1])
+	return full_response
+
+def do_redirect(host, response):
+	status_code = int(response.split()[1])
 	if status_code == 302:
-		redirect_path = get_redirect_path(full_response)
+		redirect_path = get_redirect_path(response)
 		redirect_url = "http://"+host+redirect_path
 		print(f"Redirect URL: {redirect_url}")
 		follow = input("Do you wish to follow this redirect URL (yes or no)?\n")
 		if follow == "yes":
-			get_request(verbose, headers, output_file, redirect_url, port)
-
-def post_request(verbose, headers, body, file, output_file, url, port, request="POST"):
-	host = urlparse(url).netloc
-	mysock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	mysock.connect((host, port))
-
-	if file:
-		with open(file, "r") as file:
-			body = file.read()
-
-	all_headers = "\r\n".join(headers)
-	requestPost = f"POST {url} HTTP/1.0\r\nHost: {host}\r\nContent-Length: {str(len(body))}\r\n{all_headers}\r\n\r\n{body}\r\n"
-
-	cmd = requestPost.encode()
-	mysock.send(cmd)
-
-	response = ''
-	while True:
-		data = mysock.recv(512)
-		response += data.decode()
-		if (len(data) < 1):
-			break
-	
-	if (not verbose):
-		response = strip_http_headers(response)
-
-	if(output_file):
-		with open(output_file, "w") as file:
-			file.write(response)
-	else:
-		print(response)
-
-	mysock.close()
+			return redirect_url
+		else:
+			return False
 
 def main():
 	commandline_args = sys.argv[1:]
