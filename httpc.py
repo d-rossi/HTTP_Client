@@ -58,6 +58,12 @@ def check_for_dupplicates(args_list):
 
 	return None
 
+def get_redirect_path(response):
+    response_list = response.split()	#splits on spaces
+    index = response_list.index("location:")	#get index of location: because next index is the redirect path
+    redirect_path = response_list[index + 1]
+    return redirect_path
+
 #####################################################################################################
 
 def get_request(verbose, headers, output_file, url, port, request="GET"):
@@ -73,9 +79,10 @@ def get_request(verbose, headers, output_file, url, port, request="GET"):
 		response += data.decode()
 		if (len(data) < 1):
 			break
-	
+
+	full_response = response
 	if (not verbose):
-		response = strip_http_headers(response)
+		response = strip_http_headers(full_response)
 
 	if(output_file):
 		with open(output_file, "w") as file:
@@ -84,6 +91,15 @@ def get_request(verbose, headers, output_file, url, port, request="GET"):
 		print(response)
 
 	mysock.close()
+
+	status_code = int(full_response.split()[1])
+	if status_code == 302:
+		redirect_path = get_redirect_path(full_response)
+		redirect_url = "http://"+host+redirect_path
+		print(f"Redirect URL: {redirect_url}")
+		follow = input("Do you wish to follow this redirect URL (yes or no)?\n")
+		if follow == "yes":
+			get_request(verbose, headers, output_file, redirect_url, port)
 
 def post_request(verbose, headers, body, file, output_file, url, port, request="POST"):
 	host = urlparse(url).netloc
