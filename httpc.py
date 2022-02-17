@@ -68,7 +68,8 @@ def get_redirect_path(response):
 
 def get_request(verbose, headers, output_file, url, port, request="GET"):
 	host = urlparse(url).netloc
-	request_get = f'{request} {url} HTTP/1.0\n\n'
+	all_headers = "\r\n".join(headers)
+	request_get = f'{request} {url} HTTP/1.0\r\nHost: {host}\r\n{all_headers}\r\n\r\n'
 	full_response = do_request(verbose, host, port, request_get, output_file, request)
 	redirect_url = do_redirect(host, full_response);
 	if (redirect_url):
