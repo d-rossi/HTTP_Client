@@ -11,7 +11,7 @@ def test_httpc_curl(httpc_command, curl_command):
 
 	if httpc_result_json["args"]:
 	    for k, v in httpc_result_json["args"].items():
-	        print(f"Compare ARGS {k} EQUALS {curl_result_json['args'][k]}: {v == curl_result_json['args'][k]}")
+	        print(f"Compare httpc and curl ARGS {k} EQUALS {curl_result_json['args'][k]}: {v == curl_result_json['args'][k]}")
 
 	if "files" in httpc_result_json and httpc_result_json["files"]:
 	    print(f"Compare httpc FILES {httpc_result_json['files']} EQUALS curl FILES {curl_result_json['files']}: {httpc_result_json['files'] == curl_result_json['files']}")

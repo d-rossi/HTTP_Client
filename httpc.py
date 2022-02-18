@@ -3,9 +3,6 @@ import argparse
 import sys
 from urllib.parse import urlparse
 
-#NOTE for json we need backtick:	python httpc.py post -h "Content-Type:application/json" -d "{\"Assignment\": 1}" http://httpbin.org/post
-#SEE https://stackoverflow.com/questions/7172784/how-do-i-post-json-data-with-curl
-
 #######################################HELP MESSAGES##################################################
 help_get = """httpc help get
 usage: httpc get [-v] [-h key:value] URL
@@ -59,7 +56,7 @@ def check_for_dupplicates(args_list):
 	return None
 
 def get_redirect_path(response):
-    response_list = response.split()	#splits on spaces
+    response_list = response.split()	#splits on whitespaces
     index = response_list.index("location:")	#get index of location: because next index is the redirect path
     redirect_path = response_list[index + 1]
     return redirect_path
