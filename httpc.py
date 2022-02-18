@@ -80,7 +80,10 @@ def post_request(verbose, headers, body, file, output_file, url, port, request="
 			body = file.read()
 
 	all_headers = "\r\n".join(headers)
-	request_post = f"POST {url} HTTP/1.0\r\nHost: {host}\r\nContent-Length: {str(len(body))}\r\n{all_headers}\r\n\r\n{body}\r\n"
+	if headers:
+		request_post = f"POST {url} HTTP/1.0\r\nHost: {host}\r\nContent-Length: {str(len(body))}\r\n{all_headers}\r\n\r\n{body}\r\n"
+	else:
+		request_post = f"POST {url} HTTP/1.0\r\nHost: {host}\r\nContent-Length: {str(len(body))}\r\n\r\n{body}\r\n"
 	full_response = do_request(verbose, host, port, request_post, output_file, request)
 	redirect_url = do_redirect(host, full_response);
 	if (redirect_url):
